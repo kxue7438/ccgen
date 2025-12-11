@@ -1,19 +1,11 @@
-const startBtn = document.getElementById("start");
-const stopBtn = document.getElementById("stop");
-const statusEl = document.getElementById("status");
+document.getElementById('openPanel').addEventListener('click', async () => {
+	const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-startBtn.addEventListener("click", () => {
-	chrome.runtime.sendMessage({ type: "START_CAPTURE" }, response => {
-		if (!response || !response.ok) {
-			statusEl.textContent = "Error starting capture: " + (response?.error || "unknown");
-			return;
-		}
-		statusEl.textContent = "Capturing tab audio…";
-	});
-});
+	// This grants activeTab permission
+	await chrome.sidePanel.open({ windowId: tab.windowId });
 
-stopBtn.addEventListener("click", () => {
-	chrome.runtime.sendMessage({ type: "STOP_CAPTURE" }, response => {
-		statusEl.textContent = "Stopped.";
-	});
+	// Tell side panel to start capture
+	chrome.runtime.sendMessage({ action: 'START_CAPTURE', tabId: tab.id });
+
+	window.close();
 });

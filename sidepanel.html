@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>Audio Capture & Transcription</title>
+	<style>
+		body {
+			width: 400px;
+			height: 600px;
+			padding: 20px;
+			font-family: Arial, sans-serif;
+			display: flex;
+			flex-direction: column;
+		}
+
+		button {
+			width: 100%;
+			padding: 10px;
+			margin: 5px 0;
+			font-size: 16px;
+			cursor: pointer;
+		}
+
+		#status {
+			margin: 15px 0;
+			padding: 10px;
+			background: #f0f0f0;
+			border-radius: 5px;
+		}
+
+		#transcripts {
+			flex: 1;
+			overflow-y: auto;
+			border: 1px solid #ccc;
+			padding: 10px;
+			background: #fff;
+			border-radius: 5px;
+		}
+
+		#transcripts p {
+			margin: 8px 0;
+			line-height: 1.5;
+		}
+
+		#transcripts p.final {
+			color: #000;
+		}
+
+		#transcripts p.interim {
+			color: #666;
+			font-style: italic;
+		}
+
+		h2 {
+			margin: 0 0 10px 0;
+		}
+	</style>
+</head>
+
+<body>
+	<h2>🎵 Tab Audio Transcription</h2>
+	<button id="start">▶️ Start Capture & Transcribe</button>
+	<button id="stop">⏹️ Stop</button>
+	<div id="status">Ready to capture...</div>
+
+	<h3>Transcription:</h3>
+	<div id="transcripts"></div>
+
+	<script src="sidepanel.js"></script>
+</body>
+
+</html>

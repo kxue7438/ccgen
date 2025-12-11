@@ -1,17 +1,26 @@
 {
-	"name": "Tab Audio Capture Demo",
-	"description": "Capture audio from the current tab.",
-	"version": "1.0",
 	"manifest_version": 3,
+	"name": "Tab Audio Transcription",
+	"version": "1.0",
 	"permissions": [
 		"tabCapture",
-		"activeTab"
+		"activeTab",
+		"sidePanel",
+		"storage"
 	],
+	"host_permissions": [
+		"<all_urls>",
+		"https://api.assemblyai.com/*"
+	],
+	"side_panel": {
+		"default_path": "sidepanel.html"
+	},
+	"action": {
+		"default_title": "Open Audio Transcription",
+		"default_popup": "popup.html"
+	},
 	"background": {
 		"service_worker": "background.js"
 	},
-	"action": {
-		"default_popup": "popup.html",
-		"default_title": "Capture Tab Audio"
-	}
+	"options_page": "options.html"
 }
