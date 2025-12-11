@@ -1,0 +1,17 @@
+{
+	"name": "Tab Audio Capture Demo",
+	"description": "Capture audio from the current tab.",
+	"version": "1.0",
+	"manifest_version": 3,
+	"permissions": [
+		"tabCapture",
+		"activeTab"
+	],
+	"background": {
+		"service_worker": "background.js"
+	},
+	"action": {
+		"default_popup": "popup.html",
+		"default_title": "Capture Tab Audio"
+	}
+}
