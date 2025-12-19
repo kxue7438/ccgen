@@ -164,11 +164,12 @@ class AudioBuffer:
 class TranscriptionServer:
     """WebSocket server for real-time transcription."""
     
-    def __init__(self, model_size: str = "small.en", port: int = 8765):
+    def __init__(self, model_size: str = "small.en", port: int = 8765, task: str = "transcribe"):
         self.model_size = model_size
         self.port = port
         self.model = None
         self.clients = set()
+        self.task = task
         
     async def start(self):
         """Start the WebSocket server."""
@@ -266,6 +267,7 @@ class TranscriptionServer:
         """Synchronous transcription (runs in thread pool)."""
         segments, info = self.model.transcribe(
             audio,
+            task=self.task,        # "transcribe" or "translate"
             beam_size=3,           # Smaller beam = faster
             best_of=1,
             temperature=0.0,       # Greedy decoding = faster
@@ -301,14 +303,21 @@ def main():
         default=8765,
         help="WebSocket server port (default: 8765)"
     )
+    parser.add_argument(
+        "--translate", "-t",
+        action="store_true",
+        help="Translate to English instead of transcribe"
+    )
     
     args = parser.parse_args()
     
-    logger.info(f"Configuration: model={args.model}, port={args.port}")
+    task = "translate" if args.translate else "transcribe"
+    logger.info(f"Configuration: model={args.model}, port={args.port}, task={task}")
     
     server = TranscriptionServer(
         model_size=args.model,
-        port=args.port
+        port=args.port,
+        task=task
     )
     
     try:

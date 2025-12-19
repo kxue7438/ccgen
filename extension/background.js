@@ -50,6 +50,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function handleStartCapture(wsUrl) {
   try {
+    // Stop any existing capture first
+    await handleStopCapture();
+    await closeOffscreen();
+    
     // Get active tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) {
@@ -126,4 +130,18 @@ async function setupOffscreen() {
     reasons: ['USER_MEDIA'],
     justification: 'Audio capture for transcription'
   });
+}
+
+async function closeOffscreen() {
+  try {
+    const existingContexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT']
+    });
+    
+    if (existingContexts.length > 0) {
+      await chrome.offscreen.closeDocument();
+    }
+  } catch (e) {
+    // Ignore errors
+  }
 }

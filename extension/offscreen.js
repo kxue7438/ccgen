@@ -143,25 +143,39 @@ function connectWebSocket(url, tabId) {
 }
 
 function stopCapture() {
+  console.log('Stopping capture...');
   isCapturing = false;
   
   if (processor) {
-    processor.disconnect();
+    try {
+      processor.disconnect();
+    } catch (e) {}
     processor = null;
   }
   
   if (audioContext) {
-    audioContext.close();
+    try {
+      audioContext.close();
+    } catch (e) {}
     audioContext = null;
   }
   
   if (mediaStream) {
-    mediaStream.getTracks().forEach(track => track.stop());
+    try {
+      mediaStream.getTracks().forEach(track => {
+        track.stop();
+        track.enabled = false;
+      });
+    } catch (e) {}
     mediaStream = null;
   }
   
   if (ws) {
-    ws.close();
+    try {
+      ws.close();
+    } catch (e) {}
     ws = null;
   }
+  
+  console.log('Capture stopped');
 }

@@ -7,7 +7,7 @@ Live transcription Chrome extension powered by `faster-whisper` running locally 
 ### 1. Set Up Backend (Python)
 
 ```bash
-cd backend
+cd whisper_backend
 
 # Create virtual environment
 python3 -m venv venv
@@ -40,28 +40,6 @@ You can close the popup — capture continues in the background.
 
 ---
 
-## Project Structure
-
-```
-whisper-realtime/
-├── backend/
-│   ├── server.py          # WebSocket server + Whisper transcription
-│   └── requirements.txt   # Python dependencies
-│
-└── extension/
-    ├── manifest.json      # Extension config
-    ├── popup.html         # Extension UI
-    ├── popup.js           # UI logic
-    ├── background.js      # Service worker - manages capture
-    ├── offscreen.html     # Offscreen document for audio
-    ├── offscreen.js       # Audio capture + WebSocket
-    ├── content.js         # Caption overlay on pages
-    ├── captions.css       # Caption styling
-    └── icon*.png          # Extension icons
-```
-
----
-
 ## Backend Configuration
 
 ### Model Selection
@@ -89,47 +67,19 @@ Then update WebSocket URL in the extension popup.
 
 ---
 
-## Requirements
-
-### Backend
-- Python 3.9+
-- ~2GB RAM for `small` model
-- CPU with AVX2 support (most modern CPUs)
-
-### Extension
-- Chrome 116+ (for offscreen document support)
-- Manifest V3 compatible
-
----
-
 ## Troubleshooting
 
 ### "Cannot connect to backend"
+- `cd whisper_backend`
 - Make sure server is running: `./venv/bin/python server.py --model small`
 - Check port matches (default: 8765)
 - Verify WebSocket URL in extension: `ws://127.0.0.1:8765`
-
-### No captions appearing
-- Check extension status shows "Capturing & Transcribing"
-- Make sure the page has audio playing
-- Try refreshing the page
-- Check Chrome DevTools console for errors
 
 ### Captions are delayed
 - Use a smaller model: `--model base` or `--model tiny`
 - Close CPU-intensive applications
 - Check CPU usage
 
-### Extension won't capture
-- Can't capture `chrome://` pages or Chrome Web Store
-- Try on YouTube or other regular websites
-- Reload the extension
-
-### "Permission denied" on Linux
-```bash
-chmod +x venv/bin/activate
-source venv/bin/activate
-```
 
 Or run directly:
 ```bash
@@ -175,7 +125,3 @@ Or run directly:
 4. **Close the popup** — capture continues in background, saves resources
 
 ---
-
-## License
-
-MIT — do whatever you want with it.
