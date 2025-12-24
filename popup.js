@@ -1,25 +1,32 @@
-// popup.js - Simple UI that talks to background
+// popup.js - UI for Web Speech + Gemini Nano captions
 
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
-const wsUrlInput = document.getElementById('wsUrl');
+const speechLang = document.getElementById('speechLang');
+const translateTo = document.getElementById('translateTo');
 const captionPosition = document.getElementById('captionPosition');
 const transcriptPreview = document.getElementById('transcriptPreview');
+const warning = document.getElementById('warning');
 
 let isCapturing = false;
 
 // Load saved settings
-chrome.storage.local.get(['wsUrl', 'captionPosition'], (data) => {
-  if (data.wsUrl) wsUrlInput.value = data.wsUrl;
+chrome.storage.local.get(['speechLang', 'translateTo', 'captionPosition'], (data) => {
+  if (data.speechLang) speechLang.value = data.speechLang;
+  if (data.translateTo) translateTo.value = data.translateTo;
   if (data.captionPosition) captionPosition.value = data.captionPosition;
   checkStatus();
 });
 
-// Save settings on change
-wsUrlInput.addEventListener('change', () => {
-  chrome.storage.local.set({ wsUrl: wsUrlInput.value });
+// Save settings
+speechLang.addEventListener('change', () => {
+  chrome.storage.local.set({ speechLang: speechLang.value });
+});
+
+translateTo.addEventListener('change', () => {
+  chrome.storage.local.set({ translateTo: translateTo.value });
 });
 
 captionPosition.addEventListener('change', () => {
@@ -43,6 +50,9 @@ async function checkStatus() {
       if (response.lastTranscript) {
         transcriptPreview.textContent = response.lastTranscript;
       }
+      if (response.warning) {
+        showWarning(response.warning);
+      }
     }
   } catch (e) {
     updateUI(false);
@@ -53,8 +63,9 @@ function updateUI(capturing) {
   statusDot.className = 'status-dot';
   if (capturing) {
     statusDot.classList.add('capturing');
-    statusText.textContent = 'Capturing & Transcribing';
+    statusText.textContent = 'Listening...';
   } else {
+    statusDot.classList.add('ready');
     statusText.textContent = 'Ready';
   }
   
@@ -63,32 +74,43 @@ function updateUI(capturing) {
   isCapturing = capturing;
 }
 
+function showWarning(msg) {
+  warning.textContent = msg;
+  warning.classList.add('show');
+}
+
 // Start capture
 startBtn.addEventListener('click', async () => {
-  const wsUrl = wsUrlInput.value;
-  chrome.storage.local.set({ wsUrl });
+  const lang = speechLang.value;
+  const translate = translateTo.value;
+  chrome.storage.local.set({ speechLang: lang, translateTo: translate });
+  
   statusText.textContent = 'Starting...';
+  warning.classList.remove('show');
   
   try {
     const result = await chrome.runtime.sendMessage({ 
-      type: 'START_CAPTURE_REQUEST',
-      wsUrl: wsUrl
+      type: 'START_CAPTURE',
+      speechLang: lang,
+      translateTo: translate
     });
     
     if (result && result.success) {
       updateUI(true);
     } else {
-      statusText.textContent = result?.error || 'Failed to start';
+      statusText.textContent = 'Ready';
+      showWarning(result?.error || 'Failed to start');
     }
   } catch (e) {
-    statusText.textContent = 'Error: ' + e.message;
+    statusText.textContent = 'Ready';
+    showWarning('Error: ' + e.message);
   }
 });
 
-// Stop capture
+// Stop
 stopBtn.addEventListener('click', async () => {
   try {
-    await chrome.runtime.sendMessage({ type: 'STOP_CAPTURE_REQUEST' });
+    await chrome.runtime.sendMessage({ type: 'STOP_CAPTURE' });
     updateUI(false);
   } catch (e) {
     console.error('Stop error:', e);
@@ -102,9 +124,9 @@ chrome.runtime.onMessage.addListener((message) => {
     transcriptPreview.scrollTop = transcriptPreview.scrollHeight;
   } else if (message.type === 'STATUS_UPDATE') {
     updateUI(message.capturing);
+  } else if (message.type === 'WARNING') {
+    showWarning(message.text);
   }
 });
 
-// Initial UI
 checkStatus();
-startBtn.disabled = false;
