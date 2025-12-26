@@ -1,34 +1,33 @@
-// background.js - Manages offscreen document for Web Speech API
+// background.js - Manages offscreen document and relays messages
 
 let currentTabId = null;
 let isCapturing = false;
 let lastTranscript = '';
-let warningMsg = '';
 
+// Handle messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
-    case 'START_CAPTURE':
-      handleStartCapture(message.speechLang, message.translateTo)
+    case 'START_CAPTURE_REQUEST':
+      handleStartCapture(message.wsUrl)
         .then(result => sendResponse(result));
       return true;
       
-    case 'STOP_CAPTURE':
+    case 'STOP_CAPTURE_REQUEST':
       handleStopCapture().then(() => sendResponse({ success: true }));
       return true;
       
     case 'GET_STATUS':
       sendResponse({
         capturing: isCapturing,
-        lastTranscript: lastTranscript,
-        warning: warningMsg
+        lastTranscript: lastTranscript
       });
       break;
       
     case 'TRANSCRIPT':
       lastTranscript = message.text;
       // Relay to content script
-      if (currentTabId) {
-        chrome.tabs.sendMessage(currentTabId, {
+      if (message.tabId) {
+        chrome.tabs.sendMessage(message.tabId, {
           type: 'SHOW_CAPTION',
           text: message.text,
           isFinal: message.isFinal
@@ -46,19 +45,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       isCapturing = false;
       chrome.runtime.sendMessage({ type: 'STATUS_UPDATE', capturing: false }).catch(() => {});
       break;
-      
-    case 'OFFSCREEN_WARNING':
-      warningMsg = message.text;
-      chrome.runtime.sendMessage({ type: 'WARNING', text: message.text }).catch(() => {});
-      break;
   }
 });
 
-async function handleStartCapture(speechLang, translateTo) {
+async function handleStartCapture(wsUrl) {
   try {
+    // Stop any existing capture first
     await handleStopCapture();
     await closeOffscreen();
-    warningMsg = '';
     
     // Get active tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -81,68 +75,73 @@ async function handleStartCapture(speechLang, translateTo) {
       console.log('Script inject:', e.message);
     }
     
-    // Get stream ID
+    // Get stream ID for tab capture
     const streamId = await chrome.tabCapture.getMediaStreamId({
       targetTabId: tab.id
     });
     
-    // Create offscreen document
+    // Create offscreen document if needed
     await setupOffscreen();
     
-    // Start capture
+    // Start capture in offscreen document
     const result = await chrome.runtime.sendMessage({
-      type: 'OFFSCREEN_START',
+      type: 'START_CAPTURE',
+      wsUrl: wsUrl,
       streamId: streamId,
-      tabId: tab.id,
-      speechLang: speechLang,
-      translateTo: translateTo
+      tabId: tab.id
     });
     
-    if (result && result.success) {
+    if (result.success) {
       isCapturing = true;
     }
     
     return result;
     
   } catch (e) {
-    console.error('Start error:', e);
+    console.error('Start capture error:', e);
     return { success: false, error: e.message };
   }
 }
 
 async function handleStopCapture() {
   try {
-    await chrome.runtime.sendMessage({ type: 'OFFSCREEN_STOP' });
-  } catch (e) {}
-  
-  isCapturing = false;
-  
-  if (currentTabId) {
-    chrome.tabs.sendMessage(currentTabId, { type: 'HIDE_CAPTION' }).catch(() => {});
+    await chrome.runtime.sendMessage({ type: 'STOP_CAPTURE' });
+    isCapturing = false;
+    
+    if (currentTabId) {
+      chrome.tabs.sendMessage(currentTabId, { type: 'HIDE_CAPTION' }).catch(() => {});
+    }
+  } catch (e) {
+    console.error('Stop error:', e);
   }
 }
 
 async function setupOffscreen() {
-  const contexts = await chrome.runtime.getContexts({
+  const existingContexts = await chrome.runtime.getContexts({
     contextTypes: ['OFFSCREEN_DOCUMENT']
   });
   
-  if (contexts.length > 0) return;
+  if (existingContexts.length > 0) {
+    return;
+  }
   
   await chrome.offscreen.createDocument({
     url: 'offscreen.html',
-    reasons: ['USER_MEDIA', 'AUDIO_PLAYBACK'],
-    justification: 'Speech recognition from tab audio'
+    reasons: ['USER_MEDIA'],
+    justification: 'Audio capture for transcription'
   });
 }
 
 async function closeOffscreen() {
   try {
-    const contexts = await chrome.runtime.getContexts({
+    const existingContexts = await chrome.runtime.getContexts({
       contextTypes: ['OFFSCREEN_DOCUMENT']
     });
-    if (contexts.length > 0) {
+    
+    if (existingContexts.length > 0) {
       await chrome.offscreen.closeDocument();
     }
-  } catch (e) {}
+  } catch (e) {
+    // Ignore errors
+  }
 }
