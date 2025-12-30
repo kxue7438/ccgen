@@ -46,16 +46,23 @@ You can close the popup — capture continues in the background.
 
 | Model | Speed | Accuracy | RAM | Best For |
 |-------|-------|----------|-----|----------|
-| `tiny` | ⚡⚡⚡⚡ | ★★☆☆ | ~1GB | Fastest, basic accuracy |
-| `base` | ⚡⚡⚡ | ★★★☆ | ~1GB | Good for casual use |
-| `small` | ⚡⚡ | ★★★★ | ~2GB | **Recommended** |
-| `medium` | ⚡ | ★★★★★ | ~5GB | High accuracy, may lag |
+| `tiny` | ⚡⚡⚡⚡ | ★★☆☆ | ~1GB | **Fastest** - multilingual, real-time |
+| `base` | ⚡⚡⚡ | ★★★☆ | ~1GB | **Recommended** - good speed & accuracy |
+| `small` | ⚡⚡ | ★★★★ | ~2GB | High accuracy, slower |
+| `medium` | ⚡ | ★★★★★ | ~5GB | Very high accuracy, may lag |
 | `large-v3` | 🐢 | ★★★★★ | ~10GB | Not for real-time |
 
-Use `.en` suffix for English-only (faster):
+**For multilingual support (Chinese, Spanish, etc.):**
 ```bash
-./venv/bin/python server.py --model small.en
+./venv/bin/python server.py --model base
 ```
+
+**For English-only (faster):**
+```bash
+./venv/bin/python server.py --model base.en
+```
+
+Models without `.en` suffix support 99+ languages including Chinese, Japanese, Korean, Spanish, French, etc. with automatic language detection.
 
 ### Change Port
 
@@ -76,9 +83,10 @@ Then update WebSocket URL in the extension popup.
 - Verify WebSocket URL in extension: `ws://127.0.0.1:8765`
 
 ### Captions are delayed
-- Use a smaller model: `--model base` or `--model tiny`
+- Use a faster model: `--model base` or `--model tiny` (for multilingual) or `--model base.en` / `--model tiny.en` (English-only)
 - Close CPU-intensive applications
 - Check CPU usage
+- For Chinese/multilingual: `base` is 2-5x faster than `small` with good accuracy
 
 
 Or run directly:

@@ -4,78 +4,112 @@
 	// Prevent double injection
 	if (window.__whisperCaptionsInjected) return;
 	window.__whisperCaptionsInjected = true;
-  
+
 	let captionContainer = null;
-	let captionText = null;
-	let fadeTimeout = null;
-	let hideTimeout = null;
 	let position = 'bottom';
-	
+	let subtitleLines = []; // Array of {text: string, timestamp: number, element: HTMLElement}
+	const LINE_DURATION = 5000; // 5 seconds per line
+	let cleanupInterval = null;
+
 	function createCaptionOverlay() {
 	  // Remove any existing overlay first
 	  const existing = document.getElementById('whisper-caption-container');
 	  if (existing) {
 		existing.remove();
 	  }
-	  
+
 	  captionContainer = document.createElement('div');
 	  captionContainer.id = 'whisper-caption-container';
 	  captionContainer.className = `whisper-caption-${position}`;
-	  
-	  captionText = document.createElement('div');
-	  captionText.id = 'whisper-caption-text';
-	  
-	  captionContainer.appendChild(captionText);
+
 	  document.body.appendChild(captionContainer);
+
+	  // Start cleanup interval
+	  if (cleanupInterval) {
+		clearInterval(cleanupInterval);
+	  }
+	  cleanupInterval = setInterval(removeExpiredLines, 100);
 	}
-	
+
+	function removeExpiredLines() {
+	  if (!captionContainer) return;
+
+	  const now = Date.now();
+	  const linesToRemove = [];
+
+	  // Find expired lines
+	  subtitleLines.forEach((line, index) => {
+		if (now - line.timestamp >= LINE_DURATION) {
+		  linesToRemove.push(index);
+		}
+	  });
+
+	  // Remove expired lines from bottom to top (reverse order to maintain indices)
+	  linesToRemove.reverse().forEach(index => {
+		const line = subtitleLines[index];
+		if (line.element && line.element.parentNode) {
+		  line.element.classList.add('fade-out');
+		  setTimeout(() => {
+			if (line.element && line.element.parentNode) {
+			  line.element.remove();
+			}
+		  }, 300);
+		}
+		subtitleLines.splice(index, 1);
+	  });
+
+	  // Hide container if no lines
+	  if (subtitleLines.length === 0) {
+		captionContainer.classList.remove('visible');
+	  }
+	}
+
 	function showCaption(text, isFinal) {
 	  if (!captionContainer || !document.body.contains(captionContainer)) {
 		createCaptionOverlay();
 	  }
-	  
+
 	  // Don't show empty text
 	  if (!text || !text.trim()) {
 		return;
 	  }
-	  
-	  captionText.textContent = text;
-	  captionText.className = isFinal ? 'final' : 'partial';
+
+	  // Create new line element
+	  const lineElement = document.createElement('div');
+	  lineElement.className = 'caption-line';
+	  lineElement.textContent = text;
+
+	  // Add to container
+	  captionContainer.appendChild(lineElement);
 	  captionContainer.classList.add('visible');
-	  
-	  // Clear previous timeouts
-	  if (fadeTimeout) {
-		clearTimeout(fadeTimeout);
-		fadeTimeout = null;
-	  }
-	  if (hideTimeout) {
-		clearTimeout(hideTimeout);
-		hideTimeout = null;
-	  }
-	  
-	  // Auto-fade after 3 seconds of no updates
-	  fadeTimeout = setTimeout(() => {
-		if (captionContainer) {
-		  captionContainer.classList.remove('visible');
+
+	  // Add to tracking array
+	  subtitleLines.push({
+		text: text,
+		timestamp: Date.now(),
+		element: lineElement
+	  });
+
+	  // Limit to max 5 lines on screen
+	  while (subtitleLines.length > 5) {
+		const oldestLine = subtitleLines.shift();
+		if (oldestLine.element && oldestLine.element.parentNode) {
+		  oldestLine.element.classList.add('fade-out');
+		  setTimeout(() => {
+			if (oldestLine.element && oldestLine.element.parentNode) {
+			  oldestLine.element.remove();
+			}
+		  }, 300);
 		}
-	  }, 3000);
-	  
-	  // Fully hide after 5 seconds (cleanup)
-	  hideTimeout = setTimeout(() => {
-		hideCaption();
-	  }, 5000);
+	  }
 	}
-	
+
 	function hideCaption() {
-	  if (fadeTimeout) {
-		clearTimeout(fadeTimeout);
-		fadeTimeout = null;
+	  if (cleanupInterval) {
+		clearInterval(cleanupInterval);
+		cleanupInterval = null;
 	  }
-	  if (hideTimeout) {
-		clearTimeout(hideTimeout);
-		hideTimeout = null;
-	  }
-	  
+
 	  if (captionContainer) {
 		captionContainer.classList.remove('visible');
 		// Fully remove after fade animation
@@ -83,7 +117,7 @@
 		  if (captionContainer && captionContainer.parentNode) {
 			captionContainer.remove();
 			captionContainer = null;
-			captionText = null;
+			subtitleLines = [];
 		  }
 		}, 300);
 	  }

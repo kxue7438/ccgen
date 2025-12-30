@@ -75,10 +75,10 @@ class AudioBuffer:
     def __init__(
         self,
         sample_rate: int = 16000,
-        min_speech_ms: int = 500,      # Minimum speech duration to transcribe
-        max_speech_ms: int = 10000,    # Force transcribe after this duration
-        silence_ms: int = 500,         # Silence duration to end segment
-        overlap_ms: int = 200          # Overlap for context
+        min_speech_ms: int = 200,      # Minimum speech duration to transcribe
+        max_speech_ms: int = 5000,     # Force transcribe after this duration (shorter = more frequent updates)
+        silence_ms: int = 200,         # Silence duration to end segment
+        overlap_ms: int = 100          # Overlap for context
     ):
         self.sample_rate = sample_rate
         self.min_speech_samples = int(sample_rate * min_speech_ms / 1000)
@@ -268,13 +268,13 @@ class TranscriptionServer:
         segments, info = self.model.transcribe(
             audio,
             task=self.task,        # "transcribe" or "translate"
-            beam_size=3,           # Smaller beam = faster
+            beam_size=1,           # Greedy search = fastest
             best_of=1,
             temperature=0.0,       # Greedy decoding = faster
             condition_on_previous_text=False,
-            vad_filter=True,       # Use built-in VAD
+            vad_filter=False,      # Disable built-in VAD (we do our own)
             vad_parameters={
-                "min_silence_duration_ms": 300
+                "min_silence_duration_ms": 200
             }
         )
         

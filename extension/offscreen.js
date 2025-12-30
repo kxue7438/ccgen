@@ -54,24 +54,34 @@ async function startCapture(wsUrl, streamId, tabId) {
     audioContext = new AudioContext({ sampleRate: SAMPLE_RATE });
     const source = audioContext.createMediaStreamSource(stream);
     processor = audioContext.createScriptProcessor(CHUNK_SIZE, 1, 1);
-    
+
     processor.onaudioprocess = (e) => {
       if (!isCapturing || !ws || ws.readyState !== WebSocket.OPEN) return;
-      
+
       const inputData = e.inputBuffer.getChannelData(0);
-      
+
       // Convert to Int16
       const pcm16 = new Int16Array(inputData.length);
       for (let i = 0; i < inputData.length; i++) {
         const s = Math.max(-1, Math.min(1, inputData[i]));
         pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
       }
-      
+
       ws.send(pcm16.buffer);
     };
-    
+
+    // Connect audio for both processing AND playback
     source.connect(processor);
-    processor.connect(audioContext.destination);
+    processor.connect(audioContext.destination);  // This enables audio playback
+
+    // Also create a direct passthrough for lower latency audio
+    const audioDestination = audioContext.createMediaStreamDestination();
+    source.connect(audioDestination);
+
+    // Play the passthrough audio
+    const audio = new Audio();
+    audio.srcObject = audioDestination.stream;
+    audio.play().catch(e => console.log('Audio playback error:', e));
     
     isCapturing = true;
     return { success: true };

@@ -15,21 +15,54 @@
 	transition: opacity 0.3s ease, visibility 0.3s ease;
 	pointer-events: none;
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	max-height: 40vh;
+	overflow: hidden;
   }
-  
+
   #whisper-caption-container.visible {
 	opacity: 1;
 	visibility: visible;
   }
-  
+
   #whisper-caption-container.whisper-caption-bottom {
 	bottom: 60px;
   }
-  
+
   #whisper-caption-container.whisper-caption-top {
 	top: 60px;
   }
-  
+
+  .caption-line {
+	font-size: 18px;
+	line-height: 1.5;
+	color: #ffffff;
+	text-align: center;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+	word-wrap: break-word;
+	opacity: 1;
+	transition: opacity 0.3s ease;
+	animation: slideIn 0.3s ease;
+  }
+
+  .caption-line.fade-out {
+	opacity: 0;
+  }
+
+  @keyframes slideIn {
+	from {
+	  opacity: 0;
+	  transform: translateY(10px);
+	}
+	to {
+	  opacity: 1;
+	  transform: translateY(0);
+	}
+  }
+
+  /* Legacy support - kept for compatibility */
   #whisper-caption-text {
 	font-size: 18px;
 	line-height: 1.5;
@@ -38,12 +71,12 @@
 	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 	word-wrap: break-word;
   }
-  
+
   #whisper-caption-text.partial {
 	color: #cccccc;
 	font-style: italic;
   }
-  
+
   #whisper-caption-text.final {
 	color: #ffffff;
 	font-style: normal;
@@ -55,7 +88,8 @@
 	  max-width: 95%;
 	  padding: 10px 16px;
 	}
-	
+
+	.caption-line,
 	#whisper-caption-text {
 	  font-size: 16px;
 	}
